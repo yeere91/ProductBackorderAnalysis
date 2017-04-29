@@ -97,14 +97,19 @@ Looking at the summary stats for the differences in sales and forecasts, we can 
 ## Perform principal component analysis on the data without the categorical features
 M.pca <- prcomp(M,
                 center = TRUE,
-                scale. = TRUE) 
+                scale. = TRUE)
+pca = princomp(M, cor=T)
 
 ## Plot the scree plot to decide how many principal components to use
-plot(M.pca, type = "l")
+plot(M.pca, type = "l", main="")
 abline(h = 1) #Adding a horizontal line at 1.
+title(main="Scree Plot for PCA", xlab="Number of Components")
 
 ## Using 5 principal components, get summarized data
 summary(M.pca)
+
+## Look at the loadings of the principal components to see what features significantly contributed to each.
+pca$loadings
 ```
 
 ```{r include=FALSE}
