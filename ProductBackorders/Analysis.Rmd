@@ -112,6 +112,13 @@ summary(M.pca)
 pca$loadings
 ```
 
+#### Supervised Learning - Random Forest
+<br/>
+I'm going to start off our machine learning with a baseline random forest model. This is a classification problem: is the item going to go on backorder or not?
+<br/>
+
+
+
 ```{r include=FALSE}
 ## Cleanup temporary variable
 rm(M)
