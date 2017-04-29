@@ -1,7 +1,7 @@
 ---
 title: "Product Backorder Analysis"
 author: "Regan Yee"
-date: "March 26, 2017"
+date: "April 11, 2017"
 output: html_document
 ---
 
@@ -11,6 +11,7 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 library(corrplot)
+library(psych)
 
 ## data = read.csv("./Kaggle_Training_Dataset.csv")
 ## saveRDS(data, file = "train.RDS")
@@ -51,25 +52,62 @@ corrplot(cor(M), method="color",
          tl.col="black", tl.srt=45)
 ```
 
-```{r include=FALSE}
-## Cleanup temporary variable
-rm(M)
-```
-
-
+<br/>
 As expected, we can see the features which are metrics that are measured at different intervals are heavily correlated. This needs to be handled carefully when we build a model; we will probably need to do some feature selection. Interestingly enough, there are also two other features that have high correlations with other features: min_bank (minimum recommended amount to stock) and in_transit_qty (amount of product in transit from source). These two features are correlated with the forecast and sales metrics. It wouldn't be surprising if the forecast numbers are formulated with these features.
-
+<br/>
 
 #### Visualizations
 
 Cool, so we got to see the correlations of the numerical features. I want to visually inspect the forecast vs. actual sales now.
 
 ```{r}
+## Create the density plot using ggplot
 g = ggplot(data, aes(x=forecast_3_month, y=sales_3_month))
-p = g + geom_bin2d()
+g = g + geom_bin2d() + geom_abline(intercept = 0, slope = 1) + ggtitle("Density bin plot for Sales vs. Forecast (3 Month)")
 
-ggplotly(p)
+## Add plot_ly functionality to the graph
+ggplotly(g)
 ```
 
+<br/>
+From this density chart, we can see that a majority of the short term (3 month) predictions are close to their forecast prediction values. This can be seen by the light blue bin in the bottom left hand corner. Since we are trying to limit backorders, the bins that we are interested in are the bins that have high sales but low forecast. To make this easier to visualize, I added a y = x line to the graph. Any bin that is above the line can have their forecast values improved to stop product backorder. Specifically, I am interested in the bins that have extremely high sales but low forecast values (the bins on the top left of the graph).
+<br/>
+
+``` {r}
+## Feature engineering new metrics to combine sales and forecast
+data = data %>% mutate(diff_3_month = sales_3_month - forecast_3_month)
+data = data %>% mutate(diff_6_month = sales_6_month - forecast_6_month)
+data = data %>% mutate(diff_9_month = sales_9_month - forecast_9_month)
+
+## Summarize the new features
+summary(data %>% select(diff_3_month, diff_6_month, diff_9_month))
+```
+
+<br/>
+Looking at the summary stats for the differences in sales and forecasts, we can see that the average SKU has a higher forecast than sales value as seen by the negative mean value. The leads me to believe that the current forecasting model is more conservative for its 3 and 6 month forecasts.
+<br/>
 
 
+---
+
+## Machine Learning
+
+#### Unsupervised Learning - PCA
+```{r}
+## Perform principal component analysis on the data without the categorical features
+M.pca <- prcomp(M,
+                center = TRUE,
+                scale. = TRUE) 
+
+## Plot the scree plot to decide how many principal components to use
+plot(M.pca, type = "l")
+abline(h = 1) #Adding a horizontal line at 1.
+
+## Using 5 principal components, get summarized data
+summary(M.pca)
+```
+
+```{r include=FALSE}
+## Cleanup temporary variable
+rm(M)
+```
