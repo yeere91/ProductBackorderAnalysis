@@ -12,6 +12,7 @@ library(ggplot2)
 library(plotly)
 library(corrplot)
 library(psych)
+library(randomForest)
 
 ## data = read.csv("./Kaggle_Training_Dataset.csv")
 ## saveRDS(data, file = "train.RDS")
@@ -45,11 +46,6 @@ M = data[sapply(data, is.numeric)]
 M = M[,-3]
 
 ## Plot the correlation plot
-corrplot(cor(M), method="color",
-         order = "hclust",
-         number.cex = 0.7,
-         addCoef.col = "black",
-         tl.col="black", tl.srt=45)
 ```
 
 <br/>
@@ -116,6 +112,22 @@ pca$loadings
 <br/>
 I'm going to start off our machine learning with a baseline random forest model. This is a classification problem: is the item going to go on backorder or not?
 <br/>
+
+```{r}
+#Splitting the data into training and test sets by an 70% - 30% split.
+summary(data)
+set.seed(0)
+train = sample(1:nrow(data), 7*nrow(data)/10) #Training indices.
+val = data[-train, ] #Test dataset.
+#response = High[-train] #Test response.
+
+#Fitting an initial random forest to the training subset.
+#set.seed(0)
+#rf.boston = randomForest(went_on_backorder ~ ., data = data, subset = train, importance = TRUE)
+#rf.boston
+```
+
+
 
 
 
