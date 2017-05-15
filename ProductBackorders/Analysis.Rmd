@@ -48,6 +48,11 @@ M = data[sapply(data, is.numeric)]
 M = M[,-3]
 
 ## Plot the correlation plot
+corrplot(cor(M), method="color",
+         order = "hclust",
+         number.cex = 0.7,
+         addCoef.col = "black",
+         tl.col="black", tl.srt=45)
 ```
 
 <br/>
