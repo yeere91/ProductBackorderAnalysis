@@ -11,8 +11,10 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 library(corrplot)
-library(psych)
+library(psych)        # For PCA analysis
+library(VIM)          # For visualizing missingness
 library(randomForest)
+
 
 ## data = read.csv("./Kaggle_Training_Dataset.csv")
 ## saveRDS(data, file = "train.RDS")
@@ -52,6 +54,22 @@ M = M[,-3]
 As expected, we can see the features which are metrics that are measured at different intervals are heavily correlated. This needs to be handled carefully when we build a model; we will probably need to do some feature selection. Interestingly enough, there are also two other features that have high correlations with other features: min_bank (minimum recommended amount to stock) and in_transit_qty (amount of product in transit from source). These two features are correlated with the forecast and sales metrics. It wouldn't be surprising if the forecast numbers are formulated with these features.
 <br/>
 
+<br/>
+I also want to see how the missingness in the dataset looks like. Looking at the summary of the data, we note that the lead_time variable has NAs in it. Let's explore what sort of missingness is within the dataset.
+<br/>
+
+``` {r eval=FALSE}
+## Missingness in Dataset
+aggr(data, numbers=TRUE, only.miss=TRUE)
+```
+<center> ![](./Graphs/missingness.png) </center>
+
+<br/>
+As we suspected, only lead_time has missing values, with about 6% of the values being missing. Thinking about this variable, it may be possible that some new items that are new may have not historical data to calculate lead times. As a result, I would suspect that this data is missing not at random. I feel that this may induce some information leakage as newer items may be more prone to have backorders as there this not enough historical data.
+
+To handle this missing data, I will be applying KNN imputation for this field.
+<br/>
+
 #### Visualizations
 
 Cool, so we got to see the correlations of the numerical features. I want to visually inspect the forecast vs. actual sales now.
@@ -83,13 +101,12 @@ summary(data %>% select(diff_3_month, diff_6_month, diff_9_month))
 Looking at the summary stats for the differences in sales and forecasts, we can see that the average SKU has a higher forecast than sales value as seen by the negative mean value. The leads me to believe that the current forecasting model is more conservative for its 3 and 6 month forecasts.
 <br/>
 
-
 ---
 
 ## Machine Learning
 
 #### Unsupervised Learning - PCA
-```{r}
+```{r, eval=FALSE}
 ## Perform principal component analysis on the data without the categorical features
 M.pca <- prcomp(M,
                 center = TRUE,
@@ -108,6 +125,8 @@ summary(M.pca)
 pca$loadings
 ```
 
+<center> ![](./Graphs/Scree.png) </center>
+
 #### Supervised Learning - Random Forest
 <br/>
 I'm going to start off our machine learning with a baseline random forest model. This is a classification problem: is the item going to go on backorder or not?
@@ -117,12 +136,14 @@ I'm going to start off our machine learning with a baseline random forest model.
 #Splitting the data into training and test sets by an 70% - 30% split.
 summary(data)
 set.seed(0)
-train = sample(1:nrow(data), 7*nrow(data)/10) #Training indices.
-val = data[-train, ] #Test dataset.
-#response = High[-train] #Test response.
+train = sample(1:nrow(data), 7*nrow(data)/10) # Training indices.
+val = data[-train, ]                          # Validation dataset.
+response = val[23]                            # Validation responses (went_on_backorder)
+val = val[-23]                                # Remove the went_on_backorder column from the response dataset
 
 #Fitting an initial random forest to the training subset.
-#set.seed(0)
+set.seed(0)
+#rf.backorder = randomForest(went_on_backorder ~ ., data=data, subset = train, importance = TRUE)
 #rf.boston = randomForest(went_on_backorder ~ ., data = data, subset = train, importance = TRUE)
 #rf.boston
 ```
